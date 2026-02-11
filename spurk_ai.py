@@ -4,6 +4,11 @@ from typing import List, Dict
 from collections import defaultdict
 import random
 
+# Constants
+MIN_RESPONSE_LENGTH = 10
+MAX_STORED_MESSAGES = 1000
+MAX_COMMON_PHRASES = 100
+
 class SpurkAI:
     """
     AI model that learns from Spurk's messages and generates responses in their style.
@@ -50,9 +55,9 @@ class SpurkAI:
         # Store the message
         self.messages.append(message)
         
-        # Keep only last 1000 messages to prevent data file from growing too large
-        if len(self.messages) > 1000:
-            self.messages = self.messages[-1000:]
+        # Keep only last MAX_STORED_MESSAGES to prevent data file from growing too large
+        if len(self.messages) > MAX_STORED_MESSAGES:
+            self.messages = self.messages[-MAX_STORED_MESSAGES:]
         
         # Extract word pairs for Markov chain-like generation
         words = message.split()
@@ -63,8 +68,8 @@ class SpurkAI:
         if 3 <= len(words) <= 10:
             if message not in self.common_phrases:
                 self.common_phrases.append(message)
-                if len(self.common_phrases) > 100:
-                    self.common_phrases = self.common_phrases[-100:]
+                if len(self.common_phrases) > MAX_COMMON_PHRASES:
+                    self.common_phrases = self.common_phrases[-MAX_COMMON_PHRASES:]
         
         self.save_data()
     
@@ -109,7 +114,7 @@ class SpurkAI:
                     break
             
             response = ' '.join(response_words)
-            if len(response) > 10:
+            if len(response) > MIN_RESPONSE_LENGTH:
                 return response
         
         # Strategy 3: Return a random message

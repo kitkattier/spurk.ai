@@ -6,6 +6,8 @@ A Discord chatbot that learns from Spurk (Oscar) in real-time and mimics their c
 
 - **Real-time Learning**: Automatically learns from Spurk's messages as they chat
 - **AI Response Generation**: Generates responses in Spurk's style using learned patterns
+- **Random Message Sending**: Bot randomly sends messages to active channels like a real person
+- **Random Replies**: Bot randomly replies to messages in conversations, not just when mentioned
 - **Multiple Generation Strategies**: Uses common phrases, word pair patterns (Markov chains), and random message selection
 - **Discord Integration**: Works as a Discord bot with commands and mention responses
 - **Persistent Storage**: Saves training data to JSON file for continuity across restarts
@@ -63,7 +65,15 @@ cp .env.example .env
 ```env
 DISCORD_TOKEN=your_bot_token_here
 SPURK_USER_ID=user_id_to_learn_from
+RANDOM_REPLY_CHANCE=0.05
+RANDOM_MESSAGE_INTERVAL=600
 ```
+
+Configuration options:
+- `DISCORD_TOKEN`: Your Discord bot token
+- `SPURK_USER_ID`: The Discord user ID to learn from
+- `RANDOM_REPLY_CHANCE`: Probability (0.0-1.0) that the bot will reply to a random message (default: 0.05 = 5%)
+- `RANDOM_MESSAGE_INTERVAL`: Interval in seconds for sending random messages (default: 600 = 10 minutes, set to 0 to disable)
 
 To find a user's Discord ID:
 - Enable Developer Mode in Discord (Settings > Advanced > Developer Mode)
@@ -88,6 +98,13 @@ The bot will start and connect to Discord. It will begin learning from Spurk's m
 ### Automatic Learning
 
 The bot automatically learns from messages sent by the specified user (Spurk/Oscar). No action needed!
+
+### Random Behavior
+
+The bot now acts more like a real person:
+- **Random Replies**: The bot will randomly reply to messages in conversations (5% chance by default)
+- **Random Messages**: The bot will periodically send messages to active channels (every 10 minutes by default)
+- Both behaviors can be configured in the `.env` file
 
 ### Getting Responses
 

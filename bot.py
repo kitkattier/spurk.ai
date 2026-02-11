@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import os
 import random
+from collections import deque
 from dotenv import load_dotenv
 from spurk_ai import SpurkAI
 
@@ -19,11 +20,12 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
+# Disable default help command so we can use our custom one
 bot = commands.Bot(command_prefix='!spurk ', intents=intents, help_command=None)
 spurk_ai = SpurkAI()
 
-# Store channels where the bot is active for random messages
-active_channels = []
+# Store channels where the bot is active for random messages (max 10 recent channels)
+active_channels = deque(maxlen=10)
 
 @bot.event
 async def on_ready():
@@ -50,9 +52,6 @@ async def on_message(message):
     # Track channels where there's activity for random messages
     if message.channel not in active_channels and not isinstance(message.channel, discord.DMChannel):
         active_channels.append(message.channel)
-        # Keep only the last 10 active channels to avoid memory issues
-        if len(active_channels) > 10:
-            active_channels.pop(0)
     
     # Learn from Spurk's messages
     if message.author.id == SPURK_USER_ID:
@@ -69,7 +68,7 @@ async def on_message(message):
         return
     
     # Randomly reply to messages (excluding command messages)
-    if not message.content.startswith('!spurk ') and random.random() < RANDOM_REPLY_CHANCE:
+    if not message.content.startswith(bot.command_prefix) and random.random() < RANDOM_REPLY_CHANCE:
         # Only reply if we have enough training data
         if spurk_ai.get_stats()['total_messages'] >= 5:
             response = spurk_ai.generate_response(message.content)

@@ -106,6 +106,11 @@ async def stats(ctx):
     await ctx.send(embed=embed)
 
 
+@bot.command(name="ping")
+async def ping(ctx):
+    await ctx.send("pong!")
+
+
 @bot.command(name="help")
 async def help_command(ctx):
     """Show help information."""

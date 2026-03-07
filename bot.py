@@ -15,6 +15,12 @@ SPURK_USER_ID = int(os.getenv("SPURK_USER_ID", "0"))
 RANDOM_REPLY_CHANCE = float(os.getenv("RANDOM_REPLY_CHANCE", "0.05"))
 RANDOM_MESSAGE_INTERVAL = int(os.getenv("RANDOM_MESSAGE_INTERVAL", "600"))
 
+# Whitelist of channel IDs where the bot may post spontaneously (empty = all channels)
+_spontaneous_channels_raw = os.getenv("SPONTANEOUS_CHANNELS", "")
+SPONTANEOUS_CHANNELS = set(
+    int(cid.strip()) for cid in _spontaneous_channels_raw.split(",") if cid.strip()
+)
+
 # Bot setup
 intents = discord.Intents.default()
 intents.message_content = True
@@ -35,6 +41,10 @@ async def on_ready():
     print(f"Monitoring user ID: {SPURK_USER_ID}")
     print(f"Random reply chance: {RANDOM_REPLY_CHANCE * 100}%")
     print(f"Random message interval: {RANDOM_MESSAGE_INTERVAL}s")
+    if SPONTANEOUS_CHANNELS:
+        print(f"Spontaneous posting restricted to channel IDs: {SPONTANEOUS_CHANNELS}")
+    else:
+        print("Spontaneous posting allowed in all channels")
     stats = spurk_ai.get_stats()
     print(f"Loaded training data: {stats}")
 
@@ -65,16 +75,24 @@ async def on_message(message):
     # Process commands first
     await bot.process_commands(message)
 
-    # Respond when mentioned
-    if bot.user.mentioned_in(message) and not message.mention_everyone:
+    # Respond when mentioned or when the user replies to the bot's message
+    is_reply_to_bot = (
+        message.reference is not None
+        and message.reference.resolved is not None
+        and isinstance(message.reference.resolved, discord.Message)
+        and message.reference.resolved.author == bot.user
+    )
+    if (bot.user.mentioned_in(message) and not message.mention_everyone) or is_reply_to_bot:
         response = spurk_ai.generate_response(message.content)
         await message.channel.send(response)
         return
 
-    # Randomly reply to messages (excluding command messages)
+    # Randomly reply to messages (excluding command messages).
+    # Only post spontaneously in whitelisted channels (if a whitelist is configured).
     if (
         not message.content.startswith(bot.command_prefix)
         and random.random() < RANDOM_REPLY_CHANCE
+        and (not SPONTANEOUS_CHANNELS or message.channel.id in SPONTANEOUS_CHANNELS)
     ):
         # Only reply if we have enough training data
         if spurk_ai.get_stats()["total_messages"] >= 5:
@@ -147,8 +165,16 @@ async def send_random_messages():
     if spurk_ai.get_stats()["total_messages"] < 5:
         return
 
-    # Pick a random active channel
-    channel = random.choice(active_channels)
+    # Filter to whitelisted channels if a whitelist is configured
+    eligible_channels = [
+        ch for ch in active_channels
+        if not SPONTANEOUS_CHANNELS or ch.id in SPONTANEOUS_CHANNELS
+    ]
+    if not eligible_channels:
+        return
+
+    # Pick a random eligible channel
+    channel = random.choice(eligible_channels)
 
     try:
         response = spurk_ai.generate_response()
